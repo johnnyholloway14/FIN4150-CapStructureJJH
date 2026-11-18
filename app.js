@@ -67,7 +67,7 @@
     const label = (h) => h.replace(/<[^>]+>/g, "");
     let html = '<table class="stack"><thead><tr>' + cols.map((c) => "<th>" + c[0] + "</th>").join("") + "</tr></thead><tbody>";
     sched.rows.forEach((r) => {
-      html += "<tr" + (r.debt === bestDebt ? ' class="best"' : "") + ">" +
+      html += '<tr data-debt="' + r.debt + '"' + (r.debt === bestDebt ? ' class="best"' : "") + ">" +
         cols.map((c) => '<td data-label="' + esc(label(c[0])) + '">' + c[1](r) + "</td>").join("") + "</tr>";
     });
     html += "</tbody></table>";
@@ -104,6 +104,98 @@
     return '<ul class="summary-list">' + items.map((i) => "<li>" + i + "</li>").join("") + "</ul>" + verdict;
   }
 
+  // ---------- Levers (Part C) ----------
+
+  // Two-column list of label / value for the CDSS lever cards.
+  function kv(pairs) {
+    return '<table class="kv"><tbody>' +
+      pairs.map((p) => "<tr><td>" + p[0] + "</td><td>" + p[1] + "</td></tr>").join("") + "</tbody></table>";
+  }
+
+  function leverCard(r, which) {
+    const m = r[which];
+    const stake = m.mgmt.warning ? "⚠ not possible" : C.pct(m.mgmt.stake);
+    let html = kv([
+      ["Share price", C.cents(m.price)],
+      ["Shares repurchased", C.num(m.repurchased, 2)],
+      ["Shares remaining", C.num(m.remaining, 2)],
+      ["EPS", C.cents(m.eps)],
+      ["Dividends per share", C.cents(m.dps)],
+      ["TIE", C.times(m.tie)],
+      [which === "caseM" ? "WACC (book weights)" : "WACC (market weights)", C.pct(m.wacc)],
+      ["Management's share", stake],
+    ]);
+    if (m.mgmt.note) html += '<p class="note">' + esc(m.mgmt.note) + "</p>";
+    if (m.mgmt.warning) html += '<p class="warn">⚠ ' + esc(m.mgmt.warning) + "</p>";
+    return html;
+  }
+
+  function ticks(el, amounts) {
+    el.innerHTML = amounts.map((a) => "<span>" + C.dollars(a) + "</span>").join("");
+  }
+
+  function setupCdssLever(s) {
+    const slider = $("c-debt");
+    slider.max = String(s.rows.length - 1);
+    ticks($("c-ticks"), s.rows.map((r) => r.debt));
+
+    function show(i) {
+      const r = s.rows[i];
+      slider.value = String(i);
+      slider.setAttribute("aria-valuetext", C.dollars(r.debt));
+      $("c-debt-out").textContent = C.dollars(r.debt);
+      $("c-rates").textContent = "r_d " + (r.rd === null ? "—" : C.pct(r.rd)) + ", r_s " + C.pct(r.rs);
+      $("lever-case").innerHTML = leverCard(r, "caseM");
+      $("lever-new").innerHTML = leverCard(r, "newM");
+      document.querySelectorAll("#cdss tr[data-debt]").forEach((tr) =>
+        tr.classList.toggle("sel", Number(tr.dataset.debt) === r.debt));
+    }
+    const indexOf = (debt) => s.rows.findIndex((r) => r.debt === debt);
+
+    // Go to the amount both methods agree on; if they differ, go to the case
+    // method's amount and say so. (Ties already go to the smaller debt.)
+    function jump(caseDebt, newDebt, what) {
+      show(indexOf(caseDebt));
+      const note = $("jump-note");
+      if (caseDebt === newDebt) {
+        note.hidden = true;
+      } else {
+        note.hidden = false;
+        note.textContent = what + ": the case method picks " + C.dollars(caseDebt) + " and the new-price method picks " +
+          C.dollars(newDebt) + ". The slider shows the case method's amount.";
+      }
+    }
+
+    slider.addEventListener("input", () => { $("jump-note").hidden = true; show(Number(slider.value)); });
+    $("btn-best").addEventListener("click", () => jump(s.best.priceCase, s.best.priceNew, "Highest share price"));
+    $("btn-eps").addEventListener("click", () => jump(s.best.epsCase, s.best.epsNew, "Highest EPS"));
+    show(Math.max(0, indexOf(0)));
+  }
+
+  function setupFirmLever(ex, T, scenarios) {
+    const slider = $("l-debt");
+    slider.min = "0";
+    slider.max = String(ex.slider_max);
+    slider.step = String(ex.slider_step);
+    const amounts = [];
+    for (let d = 0; d <= ex.slider_max; d += ex.slider_step) amounts.push(d);
+    ticks($("l-ticks"), amounts);
+    $("btn-case").textContent = "Case (" + C.dollars(ex.firm_l_debt) + ")";
+    $("l-rate-note").textContent = "The interest rate is held at " + C.pct(ex.interest_rate) +
+      " at every amount, so the slider shows what debt does to Firm L's return and risk, not how lenders would respond.";
+
+    function show(debt) {
+      slider.value = String(debt);
+      slider.setAttribute("aria-valuetext", C.dollars(debt));
+      $("l-debt-out").textContent = C.dollars(debt);
+      $("firm-l-title").textContent = "Firm L (" + C.dollars(debt) + " of debt)";
+      $("firm-l").innerHTML = firmTable(C.firm(ex.total_assets, debt, ex.interest_rate, T, scenarios));
+    }
+    slider.addEventListener("input", () => show(Number(slider.value)));
+    $("btn-case").addEventListener("click", () => show(ex.firm_l_debt));
+    show(ex.firm_l_debt);
+  }
+
   // ---------- Start ----------
 
   async function start() {
@@ -124,18 +216,16 @@
 
       // Firm U and Firm L
       const u = C.firm(ex.total_assets, 0, ex.interest_rate, T, scenarios);
-      const l = C.firm(ex.total_assets, ex.firm_l_debt, ex.interest_rate, T, scenarios);
       $("firms-note").textContent = "Both firms have " + C.dollars(ex.total_assets) + " of assets and a " +
         C.pct(T) + " tax rate. Firm L has " + C.dollars(ex.firm_l_debt) + " of debt at " + C.pct(ex.interest_rate) +
-        ". ROE uses book equity (assets − debt). Firm U has no interest, so its TIE is n/a.";
-      $("firm-l-title").textContent = "Firm L (" + C.dollars(ex.firm_l_debt) + " of debt)";
+        " in the case. ROE uses book equity (assets − debt). Firm U has no interest, so its TIE is n/a.";
       $("firm-u").innerHTML = firmTable(u);
-      $("firm-l").innerHTML = firmTable(l);
+      setupFirmLever(ex, T, scenarios);
       $("firms").hidden = false;
 
       // CDSS
       const s = C.cdssSchedule(c, sched, T);
-      $("p0").textContent = C.cents(s.base.p0);
+      document.querySelectorAll(".p0").forEach((el) => (el.textContent = C.cents(s.base.p0)));
       $("cdss-note").textContent = "EBIT = sales × (1 − variable cost rate) − fixed costs = " + C.dollars(s.base.ebit) +
         " at every amount of debt. Tax rate " + C.pct(T) + ". " + C.num(s.base.n, 0) + " shares at " + C.cents(s.base.p0) +
         " today. Book assets " + C.dollars(s.base.assets) + ". CDSS pays out all earnings, so dividends per share = EPS and g = 0.";
@@ -146,6 +236,7 @@
       $("case-table").innerHTML = cdssTable(s, "caseM");
       $("new-table").innerHTML = cdssTable(s, "newM");
       $("summary").innerHTML = summary(s);
+      setupCdssLever(s);
       $("cdss").hidden = false;
 
       $("status").hidden = true;

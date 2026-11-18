@@ -18,6 +18,13 @@
     <section id="firms" hidden>
       <h2>Question c: Firm U and Firm L</h2>
       <p class="note" id="firms-note"></p>
+      <div class="card lever">
+        <label for="l-debt">Firm L's debt: <strong id="l-debt-out"></strong></label>
+        <input type="range" id="l-debt">
+        <div class="ticks" id="l-ticks"></div>
+        <div class="buttons"><button type="button" id="btn-case">Case</button></div>
+        <p class="note" id="l-rate-note"></p>
+      </div>
       <div class="pair">
         <div class="card"><h3>Firm U (no debt)</h3><div id="firm-u"></div></div>
         <div class="card"><h3 id="firm-l-title">Firm L</h3><div id="firm-l"></div></div>
@@ -29,8 +36,26 @@
       <p class="note" id="cdss-note"></p>
       <div id="cdss-warning"></div>
 
+      <div class="card lever">
+        <label for="c-debt">CDSS's debt: <strong id="c-debt-out"></strong> <span class="note" id="c-rates"></span></label>
+        <input type="range" id="c-debt" min="0" step="1" value="0">
+        <div class="ticks" id="c-ticks"></div>
+        <div class="buttons">
+          <button type="button" id="btn-best">Best price</button>
+          <button type="button" id="btn-eps">Highest EPS</button>
+        </div>
+        <p class="note" id="jump-note" hidden></p>
+        <p class="note">The slider stops only at the banker's amounts. The banker gave no costs of debt or equity in between.</p>
+        <div class="pair">
+          <div class="inner"><h3>Case method: buy back at <span class="p0"></span></h3><div id="lever-case"></div></div>
+          <div class="inner"><h3>New-price method: buy back at the new price</h3><div id="lever-new"></div></div>
+        </div>
+      </div>
+
+      <h3 class="tables-head">Every amount of borrowing</h3>
+
       <div class="card">
-        <h3>Case method (questions d(3) and d(4)): buy back at today's <span id="p0"></span></h3>
+        <h3>Case method (questions d(3) and d(4)): buy back at today's <span class="p0"></span></h3>
         <p class="note">Shares repurchased = D / P₀. EPS = net income / shares remaining. Price = EPS / r<sub>s</sub>. WACC uses book weights.</p>
         <div id="case-table"></div>
       </div>
