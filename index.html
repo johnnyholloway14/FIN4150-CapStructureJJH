@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AGE Capital Structure</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>AGE Capital Structure</h1>
+    <p class="sub">FIN 4150 · Campus Deli and Sub Shop (CDSS) and the Firm U / Firm L example</p>
+  </header>
+
+  <main>
+    <p id="status" class="status">Loading the data files…</p>
+
+    <section id="firms" hidden>
+      <h2>Question c: Firm U and Firm L</h2>
+      <p class="note" id="firms-note"></p>
+      <div class="pair">
+        <div class="card"><h3>Firm U (no debt)</h3><div id="firm-u"></div></div>
+        <div class="card"><h3 id="firm-l-title">Firm L</h3><div id="firm-l"></div></div>
+      </div>
+    </section>
+
+    <section id="cdss" hidden>
+      <h2>Question d: CDSS at each amount of borrowing</h2>
+      <p class="note" id="cdss-note"></p>
+      <div id="cdss-warning"></div>
+
+      <div class="card">
+        <h3>Case method (questions d(3) and d(4)): buy back at today's <span id="p0"></span></h3>
+        <p class="note">Shares repurchased = D / P₀. EPS = net income / shares remaining. Price = EPS / r<sub>s</sub>. WACC uses book weights.</p>
+        <div id="case-table"></div>
+      </div>
+
+      <div class="card">
+        <h3>New-price method: buy back at the price after the announcement</h3>
+        <p class="note">S = net income / r<sub>s</sub>. V = S + D. Price = V / n. Shares repurchased = D / price. WACC uses market weights.</p>
+        <div id="new-table"></div>
+      </div>
+
+      <div class="card">
+        <h3>Which amount of debt is best?</h3>
+        <div id="summary"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>All figures come from the CSV files in <code>data/</code>. Nothing leaves your device.</p>
+  </footer>
+
+  <script src="capstruct.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
