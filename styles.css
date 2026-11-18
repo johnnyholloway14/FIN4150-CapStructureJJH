@@ -1,0 +1,106 @@
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --text: #1c2430;
+  --muted: #5b6676;
+  --line: #dde2e8;
+  --accent: #b3282d; /* Utah Tech red */
+  --best: #e8f4ec;
+  --warn-bg: #fff4e0;
+  --warn-line: #e0a030;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c;
+    --card: #1b2129;
+    --text: #e6eaef;
+    --muted: #9aa5b3;
+    --line: #2e3742;
+    --accent: #ff6b6f;
+    --best: #183024;
+    --warn-bg: #3a2c12;
+    --warn-line: #b8862a;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+header, main, footer { max-width: 1000px; margin: 0 auto; padding: 0 16px; }
+header { padding-top: 20px; }
+h1 { margin: 0; font-size: 1.6rem; color: var(--accent); }
+h2 { font-size: 1.25rem; margin: 28px 0 8px; }
+h3 { font-size: 1.02rem; margin: 0 0 6px; }
+.sub, .note, footer { color: var(--muted); }
+.note { font-size: 0.9rem; margin: 4px 0 10px; }
+footer { font-size: 0.85rem; padding-bottom: 32px; }
+.status { color: var(--muted); }
+.status.error { color: var(--accent); font-weight: 600; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  margin: 12px 0;
+}
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pair .card { margin: 0; }
+
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+@media (min-width: 761px) { table.stack td { white-space: nowrap; } }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 0.85rem; color: var(--muted); font-weight: 600; vertical-align: bottom; }
+tr.total td { font-weight: 600; }
+tr.stat td { background: var(--bg); }
+tr.best td { background: var(--best); }
+
+.warn {
+  background: var(--warn-bg);
+  border-left: 4px solid var(--warn-line);
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin: 8px 0;
+  font-size: 0.92rem;
+}
+.summary-list { margin: 0; padding-left: 20px; }
+.ok { color: #2a8a4a; }
+
+/* Phones: the two firm cards stack, and each CDSS row becomes its own block
+   so nothing scrolls sideways at 375 px. */
+@media (max-width: 760px) {
+  .pair { grid-template-columns: 1fr; }
+  table.stack thead { display: none; }
+  table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; width: 100%; }
+  table.stack tr { border: 1px solid var(--line); border-radius: 8px; margin: 0 0 10px; padding: 4px 8px; }
+  table.stack td { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding: 4px 0; text-align: right; }
+  table.stack td:last-child { border-bottom: 0; }
+  table.stack td::before { content: attr(data-label); color: var(--muted); text-align: left; }
+  table.stack td:first-child { font-weight: 700; }
+}
+
+/* ---------- Levers (Part C) ---------- */
+.lever label { display: block; font-weight: 600; margin-bottom: 6px; }
+.lever input[type="range"] { width: 100%; margin: 4px 0 0; accent-color: var(--accent); }
+.ticks { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 8px; }
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+button {
+  font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--card); color: var(--accent);
+}
+button:hover, button:focus-visible { background: var(--accent); color: #fff; }
+.inner { background: var(--bg); border-radius: 8px; padding: 10px; }
+.inner h3 { font-size: 0.95rem; }
+table.kv td { white-space: normal; }
+table.kv td:last-child { font-weight: 600; }
+tr.sel td { box-shadow: inset 0 2px 0 var(--accent), inset 0 -2px 0 var(--accent); }
+.tables-head { margin-top: 20px; }
+@media (max-width: 760px) {
+  table.stack tr.sel { border: 2px solid var(--accent); }
+}

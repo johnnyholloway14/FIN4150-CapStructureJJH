@@ -1,0 +1,15 @@
+{
+  "name": "AGE Capital Structure",
+  "short_name": "AGE CapStruct",
+  "description": "FIN 4150: Campus Deli and Sub Shop's capital structure and the Firm U / Firm L example.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#b3282d",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
