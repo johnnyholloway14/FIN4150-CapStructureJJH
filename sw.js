@@ -3,7 +3,7 @@
 // change shows up. If the device is offline, fall back to the saved copy.
 // All paths are relative, because the site lives at /<repository>/, not at the root.
 
-const CACHE = "age-capstruct-v1";
+const CACHE = "age-capstruct-v2";
 const FILES = [
   "./",
   "index.html",

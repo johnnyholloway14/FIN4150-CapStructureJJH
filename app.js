@@ -134,42 +134,90 @@
     el.innerHTML = amounts.map((a) => "<span>" + C.dollars(a) + "</span>").join("");
   }
 
-  function setupCdssLever(s) {
+  // The CDSS results the slider and buttons use. Replaced when a schedule is loaded (Part F).
+  let cur = null;
+
+  function showCdss(i) {
+    const s = cur, slider = $("c-debt"), r = s.rows[i];
+    slider.value = String(i);
+    slider.setAttribute("aria-valuetext", C.dollars(r.debt));
+    $("c-debt-out").textContent = C.dollars(r.debt);
+    $("c-rates").textContent = "r_d " + (r.rd === null ? "—" : C.pct(r.rd)) + ", r_s " + C.pct(r.rs);
+    $("lever-case").innerHTML = leverCard(r, "caseM");
+    $("lever-new").innerHTML = leverCard(r, "newM");
+    document.querySelectorAll("#cdss tr[data-debt]").forEach((tr) =>
+      tr.classList.toggle("sel", Number(tr.dataset.debt) === r.debt));
+  }
+  const indexOf = (debt) => cur.rows.findIndex((r) => r.debt === debt);
+
+  // Go to the amount both methods agree on; if they differ, go to the case
+  // method's amount and say so. (Ties already go to the smaller debt.)
+  function jump(caseDebt, newDebt, what) {
+    showCdss(indexOf(caseDebt));
+    const note = $("jump-note");
+    if (caseDebt === newDebt) {
+      note.hidden = true;
+    } else {
+      note.hidden = false;
+      note.textContent = what + ": the case method picks " + C.dollars(caseDebt) + " and the new-price method picks " +
+        C.dollars(newDebt) + ". The slider shows the case method's amount.";
+    }
+  }
+
+  // Wire up the CDSS slider and buttons once.
+  function setupCdssLever() {
     const slider = $("c-debt");
-    slider.max = String(s.rows.length - 1);
+    slider.addEventListener("input", () => { $("jump-note").hidden = true; showCdss(Number(slider.value)); });
+    $("btn-best").addEventListener("click", () => jump(cur.best.priceCase, cur.best.priceNew, "Highest share price"));
+    $("btn-eps").addEventListener("click", () => jump(cur.best.epsCase, cur.best.epsNew, "Highest EPS"));
+  }
+
+  // Draw everything that depends on the banker's schedule.
+  function renderCdss(s) {
+    cur = s;
+    $("cdss-warning").innerHTML = s.priceCheck.missingZero
+      ? '<p class="warn">⚠ This schedule has no $0 row, so the app can\'t check that EPS / r<sub>s</sub> with no debt equals today\'s price.</p>'
+      : s.priceCheck.ok ? "" :
+        '<p class="warn">⚠ EPS / r<sub>s</sub> with no debt is ' + C.cents(s.priceCheck.implied) +
+        ", but cdss.csv says today's price is " + C.cents(s.priceCheck.stated) +
+        ". The banker's schedule and CDSS's figures don't agree.</p>";
+    $("case-table").innerHTML = cdssTable(s, "caseM");
+    $("new-table").innerHTML = cdssTable(s, "newM");
+    $("summary").innerHTML = summary(s);
+    $("c-debt").max = String(s.rows.length - 1);
     ticks($("c-ticks"), s.rows.map((r) => r.debt));
+    $("jump-note").hidden = true;
+    showCdss(Math.max(0, indexOf(0)));
+  }
 
-    function show(i) {
-      const r = s.rows[i];
-      slider.value = String(i);
-      slider.setAttribute("aria-valuetext", C.dollars(r.debt));
-      $("c-debt-out").textContent = C.dollars(r.debt);
-      $("c-rates").textContent = "r_d " + (r.rd === null ? "—" : C.pct(r.rd)) + ", r_s " + C.pct(r.rs);
-      $("lever-case").innerHTML = leverCard(r, "caseM");
-      $("lever-new").innerHTML = leverCard(r, "newM");
-      document.querySelectorAll("#cdss tr[data-debt]").forEach((tr) =>
-        tr.classList.toggle("sel", Number(tr.dataset.debt) === r.debt));
-    }
-    const indexOf = (debt) => s.rows.findIndex((r) => r.debt === debt);
-
-    // Go to the amount both methods agree on; if they differ, go to the case
-    // method's amount and say so. (Ties already go to the smaller debt.)
-    function jump(caseDebt, newDebt, what) {
-      show(indexOf(caseDebt));
-      const note = $("jump-note");
-      if (caseDebt === newDebt) {
-        note.hidden = true;
-      } else {
-        note.hidden = false;
-        note.textContent = what + ": the case method picks " + C.dollars(caseDebt) + " and the new-price method picks " +
-          C.dollars(newDebt) + ". The slider shows the case method's amount.";
-      }
-    }
-
-    slider.addEventListener("input", () => { $("jump-note").hidden = true; show(Number(slider.value)); });
-    $("btn-best").addEventListener("click", () => jump(s.best.priceCase, s.best.priceNew, "Highest share price"));
-    $("btn-eps").addEventListener("click", () => jump(s.best.epsCase, s.best.epsNew, "Highest EPS"));
-    show(Math.max(0, indexOf(0)));
+  // Part F: read a schedule from this device with FileReader. Nothing is uploaded.
+  function setupScheduleLoader(c, T, defaultRows) {
+    const file = $("sched-file"), err = $("sched-error"), reset = $("sched-reset");
+    const use = (rows, name, isDefault) => {
+      renderCdss(C.cdssSchedule(c, rows, T));
+      $("sched-name").textContent = name;
+      reset.hidden = isDefault;
+    };
+    file.addEventListener("change", () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const parsed = C.parseSchedule(C.parseCSV(String(reader.result)));
+        if (parsed.errors.length || !parsed.rows.length) {
+          err.innerHTML = '<p class="warn">⚠ Couldn\'t use ' + esc(f.name) + ". " +
+            (parsed.errors.length ? parsed.errors.map(esc).join(" ") : "It has no rows.") + " The schedule shown hasn't changed.</p>";
+        } else {
+          err.innerHTML = "";
+          use(parsed.rows, f.name + " (from this device)", false);
+        }
+        file.value = "";
+      };
+      reader.onerror = () => { err.innerHTML = '<p class="warn">⚠ Couldn\'t read that file.</p>'; file.value = ""; };
+      reader.readAsText(f);
+    });
+    reset.addEventListener("click", () => { err.innerHTML = ""; use(defaultRows, "AGE case banker (data/banker_schedule.csv)", true); });
+    use(defaultRows, "AGE case banker (data/banker_schedule.csv)", true);
   }
 
   function setupFirmLever(ex, T, scenarios) {
@@ -210,9 +258,8 @@
       const T = C.toMap(assumptions).tax_rate;
       const c = C.toMap(cdss);
       const ex = C.toMap(firms);
-      const sched = schedule.map((r) => ({
-        debt: C.toNum(r.debt), cost_of_debt: C.toNum(r.cost_of_debt), cost_of_equity: C.toNum(r.cost_of_equity),
-      }));
+      const parsed = C.parseSchedule(schedule);
+      if (parsed.errors.length) throw new Error("data/banker_schedule.csv: " + parsed.errors.join(" "));
 
       // Firm U and Firm L
       const u = C.firm(ex.total_assets, 0, ex.interest_rate, T, scenarios);
@@ -224,19 +271,13 @@
       $("firms").hidden = false;
 
       // CDSS
-      const s = C.cdssSchedule(c, sched, T);
-      document.querySelectorAll(".p0").forEach((el) => (el.textContent = C.cents(s.base.p0)));
-      $("cdss-note").textContent = "EBIT = sales × (1 − variable cost rate) − fixed costs = " + C.dollars(s.base.ebit) +
-        " at every amount of debt. Tax rate " + C.pct(T) + ". " + C.num(s.base.n, 0) + " shares at " + C.cents(s.base.p0) +
-        " today. Book assets " + C.dollars(s.base.assets) + ". CDSS pays out all earnings, so dividends per share = EPS and g = 0.";
-      $("cdss-warning").innerHTML = s.priceCheck.ok ? "" :
-        '<p class="warn">⚠ EPS / r<sub>s</sub> with no debt is ' + C.cents(s.priceCheck.implied) +
-        ", but cdss.csv says today's price is " + C.cents(s.priceCheck.stated) +
-        ". The banker's schedule and CDSS's figures don't agree.</p>";
-      $("case-table").innerHTML = cdssTable(s, "caseM");
-      $("new-table").innerHTML = cdssTable(s, "newM");
-      $("summary").innerHTML = summary(s);
-      setupCdssLever(s);
+      const b = C.cdssBase(c);
+      document.querySelectorAll(".p0").forEach((el) => (el.textContent = C.cents(b.p0)));
+      $("cdss-note").textContent = "EBIT = sales × (1 − variable cost rate) − fixed costs = " + C.dollars(b.ebit) +
+        " at every amount of debt. Tax rate " + C.pct(T) + ". " + C.num(b.n, 0) + " shares at " + C.cents(b.p0) +
+        " today. Book assets " + C.dollars(b.assets) + ". CDSS pays out all earnings, so dividends per share = EPS and g = 0.";
+      setupCdssLever();
+      setupScheduleLoader(c, T, parsed.rows);
       $("cdss").hidden = false;
 
       $("status").hidden = true;

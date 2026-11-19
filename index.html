@@ -40,6 +40,17 @@
     <section id="cdss" hidden>
       <h2>Question d: CDSS at each amount of borrowing</h2>
       <p class="note" id="cdss-note"></p>
+      <div class="card">
+        <h3>Banker's schedule</h3>
+        <p>Using: <strong id="sched-name"></strong></p>
+        <div class="buttons">
+          <label class="button">Load a schedule from this device<input type="file" id="sched-file" accept=".csv,text/csv" class="sr-only"></label>
+          <button type="button" id="sched-reset" hidden>Use the AGE banker</button>
+        </div>
+        <p class="note">The file is read on this device and never uploaded. It needs the columns debt,cost_of_debt,cost_of_equity, with rates as decimals.</p>
+        <div id="sched-error"></div>
+      </div>
+
       <div id="cdss-warning"></div>
 
       <div class="card lever">

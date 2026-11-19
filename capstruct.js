@@ -90,6 +90,31 @@
     return m;
   }
 
+  // A banker's schedule (debt,cost_of_debt,cost_of_equity) -> { rows, errors }.
+  // Used for data/banker_schedule.csv and for a file the student loads (Part F).
+  function parseSchedule(csvRows) {
+    const errors = [];
+    if (!csvRows.length) return { rows: [], errors: ["The file has no rows under the header."] };
+    const need = ["debt", "cost_of_debt", "cost_of_equity"];
+    const missing = need.filter((h) => !(h in csvRows[0]));
+    if (missing.length) {
+      return { rows: [], errors: ["The header must be debt,cost_of_debt,cost_of_equity. Missing: " + missing.join(", ") + "."] };
+    }
+    const rows = [];
+    csvRows.forEach((r, i) => {
+      const line = "Row " + (i + 2);
+      const debt = toNum(r.debt), rd = toNum(r.cost_of_debt), rs = toNum(r.cost_of_equity);
+      if (debt === null || !isFinite(debt) || debt < 0) { errors.push(line + ": debt must be a number of dollars, 0 or more."); return; }
+      if (rs === null || !isFinite(rs) || rs <= 0) { errors.push(line + ": cost_of_equity must be a number above 0."); return; }
+      if (debt > 0 && (rd === null || !isFinite(rd) || rd < 0)) { errors.push(line + ": cost_of_debt is needed when debt is above 0."); return; }
+      if (rs >= 1 || (rd !== null && rd >= 1)) { errors.push(line + ": write rates as decimals, like 0.11 for 11%."); return; }
+      if (rows.some((x) => x.debt === debt)) { errors.push(line + ": the amount " + debt + " appears twice."); return; }
+      rows.push({ debt, cost_of_debt: debt === 0 ? null : rd, cost_of_equity: rs });
+    });
+    rows.sort((a, b) => a.debt - b.debt);
+    return { rows, errors };
+  }
+
   // ---------- Statistics ----------
 
   function expected(probs, xs) {
@@ -228,7 +253,7 @@
 
   const api = {
     round, dollars, cents, pct, times, num,
-    parseCSV, toNum, toMap, expected, stdev,
+    parseCSV, toNum, toMap, parseSchedule, expected, stdev,
     firm, cdssBase, cdssAt, cdssSchedule, mgmtStake,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
